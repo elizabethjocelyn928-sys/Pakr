@@ -130,6 +130,28 @@ jobs:
             KS_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
             KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             KEY_PASS="${{ secrets.KEY_PASSWORD }}"
+            
+            echo "=== Verify Keystore ==="
+            if ! keytool -list \
+              -keystore /tmp/release.keystore \
+              -storepass "$KS_PASS" \
+              -alias "$KEY_ALIAS" > /dev/null; then
+              echo "::error::Keystore password, alias or file is incorrect"
+              exit 1
+            fi
+            echo "=== Verify Private Key ==="
+            if ! keytool -certreq \
+              -keystore /tmp/release.keystore \
+              -storepass "$KS_PASS" \
+              -alias "$KEY_ALIAS" \
+              -keypass "$KEY_PASS" \
+              -file /tmp/pakr-test.csr > /dev/null; then
+              echo "::error::Private key password is incorrect or the key is incompatible"
+              exit 1
+            fi
+            rm -f /tmp/pakr-test.csr
+            echo "Keystore and private key verified successfully"
+
           else
             keytool -genkey -v -keystore /tmp/release.keystore -alias debugkey -keyalg RSA -keysize 2048 -validity 3650 -storepass android -keypass android -dname "CN=Debug,O=Debug,C=US" -noprompt
             KS_PASS="android"
